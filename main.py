@@ -164,7 +164,7 @@ class MatrixDiagonalizationApp:
         width, height = letter
 
         text = c.beginText(40, height - 50)
-        text.setFont("Courier", 9)  # fuente monoespaciada para que cuadren las matrices
+        text.setFont("Courier", 9)
 
 
         contenido = self.results_text.get(1.0, tk.END).split("\n")
@@ -175,7 +175,7 @@ class MatrixDiagonalizationApp:
                 c.drawText(text)
                 c.showPage()
                 text = c.beginText(40, height - 50)
-                text.setFont("Courier", 9)  # fuente monoespaciada para que cuadren las matrices
+                text.setFont("Courier", 9)
 
 
         c.drawText(text)
@@ -322,6 +322,7 @@ class MatrixDiagonalizationApp:
                     entry.insert(0, "1")
                 row_entries.append(entry)
             self.matrix_entries.append(row_entries)
+
 
     def load_example(self):
         self.matrix_size.set(3)
@@ -535,12 +536,12 @@ class MatrixDiagonalizationApp:
             self.results_text.insert(tk.END, "PASO 4: Cálculo de Cⁿ = P × Dⁿ × P⁻¹\n")
             C_power = P @ D_power @ P_inv
 
-            C_power_rounded = np.round(C_power, 10)
-
-            if np.allclose(C_power_rounded, np.round(C_power_rounded), atol=1e-8):
+            C_power_rounded = np.round(C_power, 12)
+            if np.allclose(C_power_rounded, np.round(C_power_rounded), atol=1e-10):
                 C_power = np.round(C_power_rounded).astype(int)
             else:
                 C_power = C_power_rounded
+
 
             self.results_text.insert(tk.END, f"Matriz resultante Cⁿ:\n{self.matrix_to_str(C_power)}\n\n")
 
@@ -604,10 +605,8 @@ class MatrixDiagonalizationApp:
         matrix = np.array(matrix, dtype=float)
         rows = []
 
-        # Normalizar ceros
         matrix[np.abs(matrix) < 1e-10] = 0.0
 
-        # Convertir a texto primero para medir anchos
         text_matrix = []
         for row in matrix:
             text_row = []
@@ -619,13 +618,11 @@ class MatrixDiagonalizationApp:
                 text_row.append(text)
             text_matrix.append(text_row)
 
-        # Calcular ancho máximo por columna
         col_widths = [
             max(len(text_matrix[i][j]) for i in range(len(text_matrix)))
             for j in range(len(text_matrix[0]))
         ]
 
-        # Construir con marco
         top = "┌ " + "   ".join("─" * w for w in col_widths) + " ┐"
         bottom = "└ " + "   ".join("─" * w for w in col_widths) + " ┘"
 
