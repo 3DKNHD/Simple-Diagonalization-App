@@ -4,7 +4,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from datetime import datetime
 from tkinter import ttk, messagebox, scrolledtext, filedialog
-
 from fractions import Fraction
 import math
 
@@ -207,7 +206,7 @@ class MatrixDiagonalizationApp:
 
         ttk.Label(
             main_frame,
-            text="Calcula Cⁿ usando autovalores:  Cⁿ = P · Dⁿ · P⁻¹",
+            text="Calcula Cⁿ usando autovalores:  Cⁿ = P Dⁿ P⁻¹",
             foreground="#555"
         ).grid(row=1, column=0, columnspan=2, pady=(0, 15))
 
@@ -340,7 +339,6 @@ class MatrixDiagonalizationApp:
         return np.array(matrix, dtype=float)
 
     def find_simple_eigenvectors(self, eigenvectors, eigenvalues):
-        """Intenta encontrar autovectores simples con números enteros o fracciones"""
         size = eigenvectors.shape[0]
         simple_eigenvectors = eigenvectors.copy()
 
@@ -373,7 +371,6 @@ class MatrixDiagonalizationApp:
         return simple_eigenvectors
 
     def group_eigenvalues_eigenvectors(self, eigenvalues, eigenvectors):
-        """Agrupa autovalores y autovectores que coincidan (mismo autovalor)"""
         tolerance = 1e-10
 
         eigenvalues = np.array(eigenvalues)
@@ -413,7 +410,6 @@ class MatrixDiagonalizationApp:
         return groups
 
     def format_eigenvalue(self, eigenvalue):
-        """Formatea un autovalor para mostrarlo"""
         if np.abs(eigenvalue.imag) < 1e-10:
             if np.abs(eigenvalue.real - round(eigenvalue.real)) < 1e-10:
                 return f"{int(round(eigenvalue.real))}"
@@ -430,7 +426,6 @@ class MatrixDiagonalizationApp:
             return f"{eigenvalue:.4f}"
 
     def format_eigenvector(self, eigenvector):
-        """Formatea un autovector para mostrarlo, prefiriendo números enteros o fracciones"""
         size = len(eigenvector)
         formatted = "["
 
@@ -467,7 +462,6 @@ class MatrixDiagonalizationApp:
         return formatted
 
     def matrix_to_str_fractions(self, matrix, matrix_type="all"):
-        """Convierte una matriz a string, usando fracciones cuando sea posible"""
         if matrix is None:
             return "None"
 
@@ -521,7 +515,6 @@ class MatrixDiagonalizationApp:
         return "\n".join(rows)
 
     def matrix_to_str(self, matrix, precision=4):
-        """Función original para compatibilidad"""
         if matrix is None:
             return "None"
 
@@ -569,6 +562,11 @@ class MatrixDiagonalizationApp:
 
         self.results_text.delete(1.0, tk.END)
 
+        try:
+            C_power_direct = np.linalg.matrix_power(C, n)
+        except:
+            C_power_direct = None
+
         self.results_text.insert(tk.END, "\n" + "═" * 70 + "\n")
         self.results_text.insert(tk.END, "   CÁLCULO DE Cⁿ POR DIAGONALIZACIÓN\n")
         self.results_text.insert(tk.END, "═" * 70 + "\n\n")
@@ -578,16 +576,6 @@ class MatrixDiagonalizationApp:
         self.results_text.insert(tk.END, f"Potencia a calcular: n = {n}\n\n")
 
         try:
-            # ========== COMPROBACIÓN DE EXACTITUD ==========
-            warning_shown = False
-            warning_message = ""
-
-            # Calcular por multiplicación directa para comparación
-            try:
-                C_power_direct = np.linalg.matrix_power(C, n)
-            except:
-                C_power_direct = None
-
             self.results_text.insert(tk.END, "\n" + "─" * 60 + "\n")
             self.results_text.insert(tk.END, "PASO 1: Cálculo de autovalores y autovectores\n")
             self.results_text.insert(tk.END, "─" * 60 + "\n")
@@ -663,31 +651,30 @@ class MatrixDiagonalizationApp:
             else:
                 C_power = C_power_rounded
 
-            # ========== COMPARACIÓN CON MÉTODO DIRECTO ==========
+            warning_shown = False
             if C_power_direct is not None:
-                # Redondear ambas matrices para comparación justa
-                C_power_rounded_for_comparison = np.round(C_power, 8)
-                C_power_direct_rounded = np.round(C_power_direct, 8)
+                C_power_normalized = C_power.astype(float)
+                C_power_direct_normalized = C_power_direct.astype(float)
 
-                # Calcular la norma de la diferencia
-                diff_norm = np.linalg.norm(C_power_rounded_for_comparison - C_power_direct_rounded, 'fro')
+                max_abs_direct = np.max(np.abs(C_power_direct_normalized))
+                if max_abs_direct > 1e-10:  # Evitar división por cero
+                    # Error relativo máximo
+                    rel_error = np.max(np.abs(C_power_normalized - C_power_direct_normalized) / max_abs_direct)
 
-                if diff_norm > 1e-5:  # Umbral para considerar la diferencia significativa
-                    warning_shown = True
-                    warning_message = (
-                            "\n" + "⚠" * 70 + "\n"
-                                              "⚠ ADVERTENCIA: Posible error numérico significativo detectado\n"
-                                              f"⚠ Diferencia entre métodos: {diff_norm:.2e} (umbral: 1e-5)\n"
-                                              "⚠ El resultado puede ser inexacto debido a:\n"
-                                              "⚠ 1. Matriz no diagonalizable correctamente\n"
-                                              "⚠ 2. Errores de redondeo en autovalores/autovectores\n"
-                                              "⚠ 3. Autovalores complejos mal manejados\n"
-                                              "⚠ 4. Matriz singular o casi singular\n"
-                                              "⚠ Se recomienda verificar los cálculos manualmente\n"
-                                              "⚠" * 70 + "\n\n"
-                    )
+                    # Solo mostrar advertencia si el error es significativo
+                    if rel_error > 1e-5:  # Más del 0.001% de error relativo
+                        warning_shown = True
 
             self.results_text.insert(tk.END, f"\nMatriz resultante Cⁿ:\n{self.matrix_to_str_fractions(C_power)}\n")
+
+            # ========== MOSTRAR ADVERTENCIA SI ES NECESARIO ==========
+            if warning_shown:
+                # Solo mostrar una vez al inicio de los resultados
+                self.results_text.insert(1.0,
+                                         "\n⚠️ ADVERTENCIA: Posible error numérico detectado\n"
+                                         "   Los resultados pueden tener errores de precisión significativos.\n"
+                                         "   Se recomienda verificar manualmente para cálculos críticos.\n\n"
+                                         )
 
             self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
             self.results_text.insert(tk.END, "PASO 5: Interpretación en el contexto de redes\n")
@@ -752,15 +739,8 @@ class MatrixDiagonalizationApp:
             self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
 
             self.results_text.insert(tk.END, "✓ Cálculo completado exitosamente\n")
-
             if warning_shown:
-                # Insertar la advertencia al principio de los resultados
-                self.results_text.insert(tk.END, "⚠ Resultado marcado como potencialmente inexacto\n")
-
-                # También mostrar la advertencia al inicio (después del título)
-                self.results_text.see(1.0)  # Mover al inicio
-                self.results_text.insert(3.0, warning_message)  # Insertar después del título
-
+                self.results_text.insert(tk.END, "⚠ Nota: Ver advertencia al inicio de los resultados.\n")
             self.results_text.insert(tk.END, "=" * 60 + "\n")
 
             self.result_matrix = C_power
