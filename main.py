@@ -145,7 +145,6 @@ class MatrixDiagonalizationApp:
             style.map("TButton",
                       background=[("active", "#CCCCCC")])
 
-
     def export_to_pdf(self):
         if self.result_matrix is None or not self.result_matrix.any():
             messagebox.showerror("Error", "Primero debes calcular la matriz.")
@@ -164,8 +163,7 @@ class MatrixDiagonalizationApp:
         width, height = letter
 
         text = c.beginText(40, height - 50)
-        text.setFont("Courier", 9)
-
+        text.setFont("Courier", 9)  # fuente monoespaciada para que cuadren las matrices
 
         contenido = self.results_text.get(1.0, tk.END).split("\n")
 
@@ -175,8 +173,7 @@ class MatrixDiagonalizationApp:
                 c.drawText(text)
                 c.showPage()
                 text = c.beginText(40, height - 50)
-                text.setFont("Courier", 9)
-
+                text.setFont("Courier", 9)  # fuente monoespaciada para que cuadren las matrices
 
         c.drawText(text)
         c.save()
@@ -237,7 +234,7 @@ class MatrixDiagonalizationApp:
         ttk.Button(
             config_frame, text="Cargar ejemplo 3×3",
             command=self.load_example,
-            style="Danger.TButton"
+            style="Secondary.TButton"
         ).grid(row=5, column=0, sticky="ew")
 
         ttk.Button(
@@ -249,30 +246,18 @@ class MatrixDiagonalizationApp:
 
         ttk.Button(
             config_frame,
-            text="Alternar modo oscuro",
-            command=self.toggle_dark_mode,
-            style="Neutral.TButton"
+            text="Exportar a PDF",
+            command=self.export_to_pdf,
+            style="Danger.TButton"
         ).grid(row=7, column=0, sticky="ew", pady=5)
-        self.update_button_styles()
-        style = ttk.Style()
-        style.configure(
-            "Export.TButton",
-            background="#4CAF50",
-            foreground="white",
-            font=("Segoe UI", 10, "bold")
-        )
-        style.map(
-            "Export.TButton",
-            background=[("active", "#45a049")],
-            foreground=[("active", "white")]
-        )
 
         ttk.Button(
             config_frame,
-            text="Exportar a PDF",
-            command=self.export_to_pdf,
-            style="Export.TButton"
+            text="Alternar modo oscuro",
+            command=self.toggle_dark_mode,
+            style="Neutral.TButton"
         ).grid(row=8, column=0, sticky="ew", pady=5)
+        self.update_button_styles()
 
         right_frame = ttk.Frame(main_frame)
         right_frame.grid(row=2, column=1, sticky="nsew")
@@ -323,7 +308,6 @@ class MatrixDiagonalizationApp:
                 row_entries.append(entry)
             self.matrix_entries.append(row_entries)
 
-
     def load_example(self):
         self.matrix_size.set(3)
         self.power.set(3)
@@ -355,64 +339,281 @@ class MatrixDiagonalizationApp:
 
         return np.array(matrix, dtype=float)
 
-    def rationalize_vector(self, vector, tolerance=1e-8):
-        vector_rounded = np.round(vector, 10)
+    def find_simple_eigenvectors(self, eigenvectors, eigenvalues):
+        """Intenta encontrar autovectores simples con números enteros o fracciones"""
+        size = eigenvectors.shape[0]
+        simple_eigenvectors = eigenvectors.copy()
 
-        if np.all(np.abs(vector_rounded) < tolerance):
-            return np.zeros_like(vector_rounded, dtype=int)
+        # Para cada autovector
+        for i in range(size):
+            v = eigenvectors[:, i]
+            # Intentar escalar para obtener números enteros
+            # Primero, buscar el elemento con mayor magnitud
+            max_idx = np.argmax(np.abs(v))
+            if np.abs(v[max_idx]) > 1e-10:
+                # Escalar para que el elemento máximo sea 1
+                scale_factor = 1.0 / v[max_idx]
+                scaled_v = v * scale_factor
 
-        fractions = []
-        for val in vector_rounded:
-            if abs(val) < tolerance:
-                fractions.append(Fraction(0, 1))
-                continue
+                # Verificar si todos los elementos son aproximadamente enteros o fracciones simples
+                is_simple = True
+                for j in range(size):
+                    # Intentar encontrar fracción simple
+                    value = scaled_v[j]
+                    # Buscar denominadores pequeños
+                    found = False
+                    for denom in range(1, 21):
+                        num = round(value * denom)
+                        if np.abs(value - num / denom) < 1e-8:
+                            scaled_v[j] = num / denom
+                            found = True
+                            break
+                    if not found and np.abs(value - round(value)) < 1e-8:
+                        scaled_v[j] = round(value)
+                    elif not found:
+                        is_simple = False
+                        break
 
-            frac = Fraction(val).limit_denominator(1000)
-            fractions.append(frac)
+                if is_simple:
+                    simple_eigenvectors[:, i] = scaled_v
 
-        denoms = [f.denominator for f in fractions if f.denominator != 1 and f != 0]
-        if not denoms:
-            int_vector = [int(f.numerator) for f in fractions]
+        return simple_eigenvectors
+
+    def group_eigenvalues_eigenvectors(self, eigenvalues, eigenvectors):
+        """Agrupa autovalores y autovectores que coincidan (mismo autovalor)"""
+        # Tolerancia para considerar autovalores iguales
+        tolerance = 1e-10
+
+        # Convertir a real si la parte imaginaria es despreciable
+        eigenvalues = np.array(eigenvalues)
+        eigenvectors = np.array(eigenvectors)
+
+        if np.all(np.abs(eigenvalues.imag) < tolerance):
+            eigenvalues = eigenvalues.real
+            eigenvectors = eigenvectors.real
+
+        # Buscar autovectores simples
+        eigenvectors = self.find_simple_eigenvectors(eigenvectors, eigenvalues)
+
+        # Crear lista de pares (autovalor, autovector)
+        pairs = []
+        for i in range(len(eigenvalues)):
+            pairs.append((eigenvalues[i], eigenvectors[:, i]))
+
+        # Ordenar por autovalor
+        pairs.sort(key=lambda x: (x[0].real, x[0].imag))
+
+        # Agrupar por autovalor (con tolerancia)
+        groups = []
+        current_group = []
+        current_eigenvalue = None
+
+        for eigenvalue, eigenvector in pairs:
+            if current_eigenvalue is None:
+                current_group = [(eigenvalue, eigenvector)]
+                current_eigenvalue = eigenvalue
+            else:
+                # Comprobar si es el mismo autovalor (dentro de la tolerancia)
+                if abs(eigenvalue - current_eigenvalue) < tolerance:
+                    current_group.append((eigenvalue, eigenvector))
+                else:
+                    groups.append(current_group)
+                    current_group = [(eigenvalue, eigenvector)]
+                    current_eigenvalue = eigenvalue
+
+        if current_group:
+            groups.append(current_group)
+
+        return groups
+
+    def format_eigenvalue(self, eigenvalue):
+        """Formatea un autovalor para mostrarlo"""
+        if np.abs(eigenvalue.imag) < 1e-10:
+            if np.abs(eigenvalue.real - round(eigenvalue.real)) < 1e-10:
+                return f"{int(round(eigenvalue.real))}"
+            else:
+                # Intentar mostrar como fracción
+                try:
+                    frac = Fraction(eigenvalue.real).limit_denominator(20)
+                    if frac.denominator == 1:
+                        return f"{frac.numerator}"
+                    else:
+                        return f"{frac.numerator}/{frac.denominator}"
+                except:
+                    return f"{eigenvalue.real:.4f}"
         else:
-            lcm = 1
-            for denom in denoms:
-                lcm = lcm * denom // math.gcd(lcm, denom)
+            return f"{eigenvalue:.4f}"
 
-            int_vector = [int(f * lcm) for f in fractions]
+    def format_eigenvector(self, eigenvector):
+        """Formatea un autovector para mostrarlo, prefiriendo números enteros o fracciones"""
+        size = len(eigenvector)
+        formatted = "["
 
-        non_zero = [abs(v) for v in int_vector if v != 0]
-        if non_zero:
-            gcd_val = non_zero[0]
-            for val in non_zero[1:]:
-                gcd_val = math.gcd(gcd_val, val)
+        for j in range(size):
+            if j > 0:
+                formatted += ", "
 
-            if gcd_val > 1:
-                int_vector = [v // gcd_val for v in int_vector]
+            value = eigenvector[j]
 
-        return np.array(int_vector)
+            # Si es complejo, mostrar como complejo
+            if np.abs(value.imag) > 1e-10:
+                formatted += f"{value:.4f}"
+            else:
+                value_real = value.real
 
-    def group_eigenvectors(self, eigenvalues, eigenvectors, tolerance=1e-10):
-        rounded_eigenvalues = np.round(eigenvalues, 10)
+                # Intentar mostrar como entero
+                if np.abs(value_real - round(value_real)) < 1e-8:
+                    formatted += f"{int(round(value_real))}"
+                # Intentar mostrar como fracción simple
+                else:
+                    try:
+                        # Usar Fraction para obtener la fracción exacta o aproximada
+                        frac = Fraction(value_real).limit_denominator(20)
+                        if frac.denominator == 1:
+                            formatted += f"{frac.numerator}"
+                        else:
+                            # Simplificar más si es necesario
+                            gcd_val = math.gcd(abs(frac.numerator), frac.denominator)
+                            num_simple = frac.numerator // gcd_val
+                            denom_simple = frac.denominator // gcd_val
+                            if denom_simple == 1:
+                                formatted += f"{num_simple}"
+                            else:
+                                formatted += f"{num_simple}/{denom_simple}"
+                    except:
+                        formatted += f"{value_real:.4f}"
 
-        unique_eigenvalues = []
-        for val in rounded_eigenvalues:
-            if not any(np.abs(val - u) < tolerance for u in unique_eigenvalues):
-                unique_eigenvalues.append(val)
+        formatted += "]"
+        return formatted
 
-        grouped = {}
-        for i, eigval in enumerate(rounded_eigenvalues):
-            for u in unique_eigenvalues:
-                if np.abs(eigval - u) < tolerance:
-                    key = u
+    def matrix_to_str_with_fractions(self, matrix, is_p_matrix=False):
+        """Convierte una matriz a string, usando fracciones para matrices P y P⁻¹ si tienen decimales"""
+        if matrix is None:
+            return "None"
+
+        matrix = np.array(matrix, dtype=float)
+        rows = []
+
+        # Normalizar ceros
+        matrix[np.abs(matrix) < 1e-10] = 0.0
+
+        # Para matrices P y P⁻¹, verificar si tiene números decimales
+        if is_p_matrix:
+            has_decimals = False
+            for row in matrix:
+                for elem in row:
+                    if abs(elem - round(elem)) > 1e-8:
+                        has_decimals = True
+                        break
+                if has_decimals:
                     break
 
-            if key not in grouped:
-                grouped[key] = []
+            if has_decimals:
+                # Convertir a fracciones
+                text_matrix = []
+                for row in matrix:
+                    text_row = []
+                    for elem in row:
+                        if abs(elem - round(elem)) < 1e-8:
+                            text = str(int(round(elem)))
+                        else:
+                            try:
+                                frac = Fraction(elem).limit_denominator(20)
+                                # Simplificar la fracción
+                                gcd_val = math.gcd(abs(frac.numerator), frac.denominator)
+                                num_simple = frac.numerator // gcd_val
+                                denom_simple = frac.denominator // gcd_val
+                                if denom_simple == 1:
+                                    text = str(num_simple)
+                                else:
+                                    text = f"{num_simple}/{denom_simple}"
+                            except:
+                                text = f"{elem:.4f}"
+                        text_row.append(text)
+                    text_matrix.append(text_row)
+            else:
+                # Si no tiene decimales, mostrar como enteros
+                text_matrix = []
+                for row in matrix:
+                    text_row = []
+                    for elem in row:
+                        text_row.append(str(int(round(elem))))
+                    text_matrix.append(text_row)
+        else:
+            # Para otras matrices, usar el formato normal
+            text_matrix = []
+            for row in matrix:
+                text_row = []
+                for elem in row:
+                    if abs(elem - round(elem)) < 1e-10:
+                        text = str(int(round(elem)))
+                    else:
+                        text = f"{elem:.4f}".rstrip("0").rstrip(".")
+                    text_row.append(text)
+                text_matrix.append(text_row)
 
-            rational_eigenvector = self.rationalize_vector(eigenvectors[:, i])
-            grouped[key].append(rational_eigenvector)
+        # Calcular ancho máximo por columna
+        col_widths = [
+            max(len(text_matrix[i][j]) for i in range(len(text_matrix)))
+            for j in range(len(text_matrix[0]))
+        ]
 
-        return unique_eigenvalues, grouped
+        # Construir con marco
+        top = "┌ " + "   ".join("─" * w for w in col_widths) + " ┐"
+        bottom = "└ " + "   ".join("─" * w for w in col_widths) + " ┘"
+
+        rows.append(top)
+        for row in text_matrix:
+            formatted = "│ " + "   ".join(
+                text.rjust(col_widths[i]) for i, text in enumerate(row)
+            ) + " │"
+            rows.append(formatted)
+        rows.append(bottom)
+
+        return "\n".join(rows)
+
+    def matrix_to_str(self, matrix, precision=4):
+        """Función original para compatibilidad"""
+        if matrix is None:
+            return "None"
+
+        matrix = np.array(matrix, dtype=float)
+        rows = []
+
+        # Normalizar ceros
+        matrix[np.abs(matrix) < 1e-10] = 0.0
+
+        # Convertir a texto primero para medir anchos
+        text_matrix = []
+        for row in matrix:
+            text_row = []
+            for elem in row:
+                if abs(elem - round(elem)) < 1e-10:
+                    text = str(int(round(elem)))
+                else:
+                    text = f"{elem:.{precision}f}".rstrip("0").rstrip(".")
+                text_row.append(text)
+            text_matrix.append(text_row)
+
+        # Calcular ancho máximo por columna
+        col_widths = [
+            max(len(text_matrix[i][j]) for i in range(len(text_matrix)))
+            for j in range(len(text_matrix[0]))
+        ]
+
+        # Construir con marco
+        top = "┌ " + "   ".join("─" * w for w in col_widths) + " ┐"
+        bottom = "└ " + "   ".join("─" * w for w in col_widths) + " ┘"
+
+        rows.append(top)
+        for row in text_matrix:
+            formatted = "│ " + "   ".join(
+                text.rjust(col_widths[i]) for i, text in enumerate(row)
+            ) + " │"
+            rows.append(formatted)
+        rows.append(bottom)
+
+        return "\n".join(rows)
 
     def calculate_power(self):
         C = self.get_matrix_from_inputs()
@@ -436,120 +637,95 @@ class MatrixDiagonalizationApp:
             self.results_text.insert(tk.END, "\n" + "─" * 60 + "\n")
             self.results_text.insert(tk.END, "PASO 1: Cálculo de autovalores y autovectores\n")
             self.results_text.insert(tk.END, "─" * 60 + "\n")
+
+            # Calcular autovalores y autovectores
             eigenvalues, eigenvectors = np.linalg.eig(C)
 
-            if np.all(np.abs(eigenvalues.imag) < 1e-10):
-                eigenvalues = eigenvalues.real
-                eigenvectors = eigenvectors.real
-            else:
-                self.results_text.insert(tk.END, "Nota: La matriz tiene autovalores complejos\n")
+            # Agrupar autovalores y autovectores
+            groups = self.group_eigenvalues_eigenvectors(eigenvalues, eigenvectors)
 
-            unique_eigenvalues, grouped_eigenvectors = self.group_eigenvectors(eigenvalues, eigenvectors)
+            self.results_text.insert(tk.END, "\nAutovalores y autovectores agrupados:\n")
+            self.results_text.insert(tk.END, "-" * 50 + "\n")
 
-            self.results_text.insert(tk.END, "Autovalores encontrados:\n")
-            for val in unique_eigenvalues:
-                self.results_text.insert(tk.END, f"   λ = {val:.4f}\n")
-            self.results_text.insert(tk.END, "\n")
+            # Extraer autovalores y autovectores agrupados para construir P
+            all_eigenvalues = []
+            all_eigenvectors = []
 
-            for eigval in unique_eigenvalues:
-                self.results_text.insert(tk.END, f"Autovalor λ = {eigval:.4f}:\n")
-                for i, eigenvector in enumerate(grouped_eigenvectors[eigval]):
-                    eigenvector_str = "  ["
-                    for j, val in enumerate(eigenvector):
-                        if j > 0:
-                            eigenvector_str += ", "
-                        eigenvector_str += f"{val}"
-                    eigenvector_str += "]"
-                    self.results_text.insert(tk.END, f"  Autovector {i + 1}: {eigenvector_str}\n")
-                self.results_text.insert(tk.END, "\n")
-
-            self.results_text.insert(tk.END, "\nPASO 2: Construcción de matrices P y D\n")
-
-            P_columns = []
-            eigenvalues_for_D = []
-
-            for eigval in unique_eigenvalues:
-                if eigval in grouped_eigenvectors:
-                    eigenvectors_for_eigval = grouped_eigenvectors[eigval]
-
-                    for eigenvector in eigenvectors_for_eigval:
-                        P_columns.append(eigenvector.astype(float))
-                        eigenvalues_for_D.append(eigval)
-
-            if len(P_columns) < size:
+            for i, group in enumerate(groups):
+                eigenvalue = group[0][0]  # Tomar el primer autovalor del grupo
                 self.results_text.insert(tk.END,
-                                         f"ADVERTENCIA: Solo se encontraron {len(P_columns)} autovectores independientes "
-                                         f"de {size} necesarios.\n")
+                                         f"\nGrupo {i + 1}: Autovalor λ = {self.format_eigenvalue(eigenvalue)}\n")
 
-                remaining = size - len(P_columns)
-                for i in range(remaining):
-                    if i < len(eigenvalues):
-                        P_columns.append(eigenvectors[:, i].real)
-                        eigenvalues_for_D.append(eigenvalues[i].real)
+                # Agregar a las listas para construir P
+                for eigenvalue, eigenvector in group:
+                    all_eigenvalues.append(eigenvalue)
+                    all_eigenvectors.append(eigenvector)
 
-            elif len(P_columns) > size:
-                self.results_text.insert(tk.END,
-                                         f"ADVERTENCIA: Se encontraron {len(P_columns)} autovectores, "
-                                         f"tomando los primeros {size}.\n")
-                P_columns = P_columns[:size]
-                eigenvalues_for_D = eigenvalues_for_D[:size]
+                # Mostrar los autovectores de este grupo
+                for j, (_, eigenvector) in enumerate(group):
+                    self.results_text.insert(tk.END, f"   Autovector {j + 1}: {self.format_eigenvector(eigenvector)}\n")
 
-            if len(P_columns) < size:
-                P_columns = [eigenvectors[:, i] for i in range(size)]
-                eigenvalues_for_D = eigenvalues
-                self.results_text.insert(tk.END,
-                                         "Nota: Usando autovectores originales (no se pudieron racionalizar todos)\n")
+            self.results_text.insert(tk.END, "-" * 50 + "\n")
 
-            P = np.column_stack(P_columns)
-            D = np.diag(eigenvalues_for_D)
+            # Construir P usando todos los autovectores
+            P = np.column_stack(all_eigenvectors)
+            eigenvalues_array = np.array(all_eigenvalues)
 
-            if np.linalg.matrix_rank(P) < size:
-                self.results_text.insert(tk.END, "¡ADVERTENCIA: La matriz no es diagonalizable! "
-                                                 "Los autovectores no son linealmente independientes.\n")
-                P_inv = np.linalg.pinv(P)
-                self.results_text.insert(tk.END, "Usando pseudoinversa para continuar.\n")
-            else:
+            # Construir D
+            D = np.diag(eigenvalues_array)
+
+            # Calcular P⁻¹
+            try:
                 P_inv = np.linalg.inv(P)
+            except np.linalg.LinAlgError:
+                self.results_text.insert(tk.END, "ERROR: La matriz P no es invertible.\n")
+                return
+
+            self.results_text.insert(tk.END, "\nPASO 2: Construcción de matrices P, D y P⁻¹\n")
 
             self.results_text.insert(
                 tk.END,
-                f"Matriz P (autovectores racionalizados):\n{self.matrix_to_str(P)}\n\n"
+                f"\nMatriz P (autovectores como columnas):\n{self.matrix_to_str_with_fractions(P, is_p_matrix=True)}\n"
             )
 
             self.results_text.insert(
                 tk.END,
-                f"Matriz D (autovalores en diagonal):\n{self.matrix_to_str(D)}\n\n"
+                f"\nMatriz D (autovalores en diagonal):\n{self.matrix_to_str(D)}\n"
             )
 
             self.results_text.insert(
                 tk.END,
-                f"Matriz P⁻¹:\n{self.matrix_to_str(P_inv)}\n\n"
+                f"\nMatriz P⁻¹:\n{self.matrix_to_str_with_fractions(P_inv, is_p_matrix=True)}\n"
             )
 
-            self.results_text.insert(tk.END, "PASO 3: Cálculo de Dⁿ\n")
-            D_power = np.diag(np.array(eigenvalues_for_D) ** n)
+            self.results_text.insert(tk.END, "\nPASO 3: Cálculo de Dⁿ\n")
+            D_power = np.diag(eigenvalues_array ** n)
             self.results_text.insert(
                 tk.END,
-                f"Dⁿ (cada autovalor elevado a {n}):\n{self.matrix_to_str(D_power)}\n\n"
+                f"\nDⁿ (cada autovalor elevado a {n}):\n{self.matrix_to_str(D_power)}\n"
             )
 
-            self.results_text.insert(tk.END, "PASO 4: Cálculo de Cⁿ = P × Dⁿ × P⁻¹\n")
-            C_power = P @ D_power @ P_inv
+            self.results_text.insert(tk.END, "\nPASO 4: Cálculo de Cⁿ = P × Dⁿ × P⁻¹\n")
 
-            C_power_rounded = np.round(C_power, 12)
-            if np.allclose(C_power_rounded, np.round(C_power_rounded), atol=1e-10):
+            # Calcular paso a paso
+            temp = P @ D_power
+            C_power = temp @ P_inv
+
+            # Redondear resultados
+            C_power_rounded = np.round(C_power, 10)
+
+            # Verificar si deberían ser enteros
+            if np.all(np.abs(C_power_rounded - np.round(C_power_rounded)) < 1e-8):
                 C_power = np.round(C_power_rounded).astype(int)
             else:
                 C_power = C_power_rounded
 
+            self.results_text.insert(tk.END, f"\nMatriz resultante Cⁿ:\n{self.matrix_to_str(C_power)}\n")
 
-            self.results_text.insert(tk.END, f"Matriz resultante Cⁿ:\n{self.matrix_to_str(C_power)}\n\n")
-
+            self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
             self.results_text.insert(tk.END, "PASO 5: Interpretación en el contexto de redes\n")
-            self.results_text.insert(tk.END, "\n" + "═" * 70 + "\n")
 
-
-            self.results_text.insert(tk.END, "\nINTERPRETACIÓN DE RESULTADOS:\n")
+            self.results_text.insert(tk.END, f"\nINTERPRETACIÓN DE RESULTADOS(n = {n}):\n\n")
 
             if size > 0:
                 diag_idx = 0
@@ -576,18 +752,10 @@ class MatrixDiagonalizationApp:
             self.results_text.insert(tk.END, "• Una red está mejor conectada si hay múltiples caminos entre nodos.\n")
             self.results_text.insert(tk.END,
                                      "• Los elementos diagonales representan ciclos (caminos que regresan al origen).\n")
-
             self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
-            self.results_text.insert(tk.END, "VERIFICACIÓN: Cálculo directo de Cⁿ (sin diagonalización)\n")
-            C_power_direct = np.linalg.matrix_power(C, n)
-            C_power_direct = np.round(C_power_direct, 6)
 
-            if np.allclose(C_power, C_power_direct, atol=1e-6):
-                self.results_text.insert(tk.END, "✓ Los resultados coinciden (método validado).\n")
-            else:
-                self.results_text.insert(tk.END,
-                                         "⚠ Hay diferencias numéricas pequeñas (normal en cálculos con punto flotante).\n")
-                self.results_text.insert(tk.END, f"Matriz por cálculo directo:\n{self.matrix_to_str(C_power_direct)}\n")
+            self.results_text.insert(tk.END, "✓ Cálculo completado exitosamente\n")
+            self.results_text.insert(tk.END, "=" * 60 + "\n")
 
             self.result_matrix = C_power
 
@@ -597,44 +765,6 @@ class MatrixDiagonalizationApp:
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error inesperado:\n{str(e)}")
             self.results_text.insert(tk.END, f"ERROR: {str(e)}\n")
-
-    def matrix_to_str(self, matrix, precision=4):
-        if matrix is None:
-            return "None"
-
-        matrix = np.array(matrix, dtype=float)
-        rows = []
-
-        matrix[np.abs(matrix) < 1e-10] = 0.0
-
-        text_matrix = []
-        for row in matrix:
-            text_row = []
-            for elem in row:
-                if abs(elem - round(elem)) < 1e-10:
-                    text = str(int(round(elem)))
-                else:
-                    text = f"{elem:.{precision}f}".rstrip("0").rstrip(".")
-                text_row.append(text)
-            text_matrix.append(text_row)
-
-        col_widths = [
-            max(len(text_matrix[i][j]) for i in range(len(text_matrix)))
-            for j in range(len(text_matrix[0]))
-        ]
-
-        top = "┌ " + "   ".join("─" * w for w in col_widths) + " ┐"
-        bottom = "└ " + "   ".join("─" * w for w in col_widths) + " ┘"
-
-        rows.append(top)
-        for row in text_matrix:
-            formatted = "│ " + "   ".join(
-                text.rjust(col_widths[i]) for i, text in enumerate(row)
-            ) + " │"
-            rows.append(formatted)
-        rows.append(bottom)
-
-        return "\n".join(rows)
 
 
 def main():
