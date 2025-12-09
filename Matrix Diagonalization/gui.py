@@ -50,10 +50,11 @@ class MatrixDiagonalizationApp:
         ttk.Label(
             main_frame,
             text="Calcula Cⁿ usando autovalores:  Cⁿ = P Dⁿ P⁻¹",
-            foreground="#555"
+            foreground="#555",
+            style = "Title.TLabel"
         ).grid(row=1, column=0, columnspan=2, pady=(0, 15))
 
-        config_frame = ttk.LabelFrame(main_frame, text="⚙ Configuración", padding=10)
+        config_frame = ttk.LabelFrame(main_frame, text="Configuración", padding=10)
         config_frame.grid(row=2, column=0, sticky="nsw", padx=(0, 10))
 
         ttk.Label(config_frame, text="Tamaño de la matriz (n×n)").grid(row=0, column=0, sticky="w")
@@ -106,10 +107,10 @@ class MatrixDiagonalizationApp:
         right_frame.columnconfigure(0, weight=1)
         right_frame.rowconfigure(1, weight=1)
 
-        self.matrix_frame = ttk.LabelFrame(right_frame, text="🧮 Matriz de Adyacencia", padding=10)
+        self.matrix_frame = ttk.LabelFrame(right_frame, text="Matriz de Adyacencia", padding=10)
         self.matrix_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        results_frame = ttk.LabelFrame(right_frame, text="📊 Resultados paso a paso", padding=10)
+        results_frame = ttk.LabelFrame(right_frame, text="Resultados paso a paso", padding=10)
         results_frame.grid(row=1, column=0, sticky="nsew")
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
@@ -303,7 +304,6 @@ class MatrixDiagonalizationApp:
                     messagebox.showerror("Error", f"Valor inválido en fila {i + 1}, columna {j + 1}")
                     return None
             matrix.append(row)
-
         return matrix
 
     def export_to_pdf(self):
@@ -430,5 +430,7 @@ class MatrixDiagonalizationApp:
                 self.results_text.insert(tk.END, f"ERROR: No coincide la multiplicidad de los valores propios con la Dimensión de los subespacios propios asociados a estos\nNO DIAGONALIZABLE\n")
             elif str(e) == "No reales":
                 self.results_text.insert(tk.END, f"ERROR: Todos los valores propios no son reales\nNO DIAGONALIZABLE\n")
+            elif str(e) == "Ponderada!":
+                self.results_text.insert(tk.END, f"ERROR: Como la matriz tiene pesos no se cumple la propiedad!\nNO CUMPLE LA PROPIEDAD\n")
             else:
                 self.results_text.insert(tk.END, "Error", f"Ocurrió un error:\n{str(e)}")

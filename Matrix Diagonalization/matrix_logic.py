@@ -227,7 +227,14 @@ class MatrixCalculator:
 
     @staticmethod
     def calculate_power(matrix, power):
-        C = np.array(matrix, dtype=float)
+
+        #ACA LO VOY A TOMAR COMO ENTERO PARA ESTE CASO
+        #PARA GENERALIZAR LA BAZOFIA ESTA PARA MATRICES QUE SEAN PONDERADAS PONERLO FLOAT
+        C = np.array(matrix, dtype=int)
+
+        if np.any(C != 0) and np.any(C != 1):
+            raise ValueError("Ponderada!")
+
         size = len(C)
         eigenvalues, eigenvectors = np.linalg.eig(C)
 
