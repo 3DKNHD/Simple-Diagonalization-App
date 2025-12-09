@@ -223,9 +223,10 @@ class MatrixCalculator:
 
     @staticmethod
     def calculate_power(matrix, power):
-        C = matrix
+        C = np.array(matrix, dtype=float)
         size = len(C)
-        C_power_direct = np.linalg.matrix_power(C, power) if np.linalg.matrix_power is not None else None
+
+        C_power_direct = np.linalg.matrix_power(C, power) if hasattr(np.linalg, 'matrix_power') else None
 
         eigenvalues, eigenvectors = np.linalg.eig(C)
         groups = MatrixCalculator.group_eigenvalues_eigenvectors(eigenvalues, eigenvectors)
@@ -234,7 +235,6 @@ class MatrixCalculator:
         all_eigenvectors = []
 
         for group in groups:
-            eigenvalue = group[0][0]
             for eigenvalue, eigenvector in group:
                 all_eigenvalues.append(eigenvalue)
                 all_eigenvectors.append(eigenvector)
@@ -244,14 +244,25 @@ class MatrixCalculator:
         D = np.diag(eigenvalues_array)
         P_inv = np.linalg.inv(P)
         D_power = np.diag(eigenvalues_array ** power)
-        temp = P @ D_power
-        C_power = temp @ P_inv
+        C_power = P @ D_power @ P_inv
 
         C_power_rounded = np.round(C_power, 10)
         if np.all(np.abs(C_power_rounded - np.round(C_power_rounded)) < 1e-8):
             C_power_result = np.round(C_power_rounded).astype(int)
         else:
             C_power_result = C_power_rounded
+
+        warning = False
+        if C_power_direct is not None:
+            C_power_normalized = C_power_result.astype(float)
+            C_power_direct_normalized = C_power_direct.astype(float)
+            max_abs_direct = np.max(np.abs(C_power_direct_normalized))
+            if max_abs_direct > 1e-10:
+                rel_error = np.max(np.abs(C_power_normalized - C_power_direct_normalized) / max_abs_direct)
+                if rel_error > 1e-5:
+                    warning = True
+
+        interpretation = MatrixCalculator.get_interpretation(C_power_result, power)
 
         return {
             'matrix': C,
@@ -263,5 +274,72 @@ class MatrixCalculator:
             'D_power': D_power,
             'result': C_power_result,
             'direct_power': C_power_direct,
-            'size': size
+            'size': size,
+            'warning': warning,
+            'interpretation': interpretation
         }
+
+    @staticmethod
+    def get_interpretation(result_matrix, power):
+        size = len(result_matrix)
+        interpretation_lines = []
+
+        if size > 0:
+            diag_idx = 0
+            diag_value = result_matrix[diag_idx, diag_idx]
+
+            if np.abs(diag_value - round(diag_value)) < 1e-8:
+                diag_str = str(int(round(diag_value)))
+            else:
+                try:
+                    frac = Fraction(diag_value).limit_denominator(20)
+                    gcd_val = math.gcd(abs(frac.numerator), frac.denominator)
+                    num_simple = frac.numerator // gcd_val
+                    denom_simple = frac.denominator // gcd_val
+                    if denom_simple == 1:
+                        diag_str = f"{num_simple}"
+                    else:
+                        diag_str = f"{num_simple}/{denom_simple}"
+                except:
+                    diag_str = f"{diag_value:.2f}"
+
+            interpretation_lines.append(
+                f"• Elemento en la diagonal Cⁿ[{diag_idx + 1},{diag_idx + 1}] = {diag_str}\n"
+                f"  Representa el número de caminos de longitud {power} desde el dispositivo {diag_idx + 1} "
+                f"hasta sí mismo (ciclos de longitud {power}).\n\n"
+            )
+
+        if size > 1:
+            off_diag_row, off_diag_col = 0, 1
+            off_diag_value = result_matrix[off_diag_row, off_diag_col]
+
+
+            if np.abs(off_diag_value - round(off_diag_value)) < 1e-8:
+                off_diag_str = str(int(round(off_diag_value)))
+            else:
+                try:
+                    frac = Fraction(off_diag_value).limit_denominator(20)
+                    gcd_val = math.gcd(abs(frac.numerator), frac.denominator)
+                    num_simple = frac.numerator // gcd_val
+                    denom_simple = frac.denominator // gcd_val
+                    if denom_simple == 1:
+                        off_diag_str = f"{num_simple}"
+                    else:
+                        off_diag_str = f"{num_simple}/{denom_simple}"
+                except:
+                    off_diag_str = f"{off_diag_value:.2f}"
+
+            interpretation_lines.append(
+                f"• Elemento fuera de la diagonal Cⁿ[{off_diag_row + 1},{off_diag_col + 1}] = {off_diag_str}\n"
+                f"  Representa el número de caminos de longitud {power} desde el dispositivo {off_diag_row + 1} "
+                f"hasta el dispositivo {off_diag_col + 1}.\n\n"
+            )
+
+        interpretation_lines.append("INFORMACIÓN ADICIONAL PARA ANÁLISIS DE REDES:\n")
+        interpretation_lines.append(
+            f"• La matriz Cⁿ muestra todos los caminos de longitud {power} entre dispositivos.\n")
+        interpretation_lines.append("• Valores altos indican muchas conexiones indirectas entre nodos.\n")
+        interpretation_lines.append("• Una red está mejor conectada si hay múltiples caminos entre nodos.\n")
+        interpretation_lines.append("• Los elementos diagonales representan ciclos (caminos que regresan al origen).\n")
+
+        return "".join(interpretation_lines)

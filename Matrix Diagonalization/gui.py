@@ -1,7 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
-from matrix_logic import MatrixCalculator
-from pdf_exporter import PDFExporter
 
 
 class MatrixDiagonalizationApp:
@@ -15,8 +13,14 @@ class MatrixDiagonalizationApp:
         self.power = tk.IntVar(value=3)
         self.matrix_entries = []
         self.result_matrix = None
+        self.calculator = None
+        self.pdf_exporter = None
 
         self.setup_ui()
+
+    def set_dependencies(self, calculator, pdf_exporter):
+        self.calculator = calculator
+        self.pdf_exporter = pdf_exporter
 
     def setup_ui(self):
         style = ttk.Style()
@@ -250,13 +254,15 @@ class MatrixDiagonalizationApp:
         self.matrix_entries = []
 
         for j in range(size):
-            ttk.Label(self.matrix_frame, text=f"Col {j + 1}", font=('Arial', 9, 'bold')).grid(row=0, column=j + 1,
-                                                                                              padx=5, pady=5)
+            ttk.Label(self.matrix_frame, text=f"Col {j + 1}", font=('Arial', 9, 'bold')).grid(
+                row=0, column=j + 1, padx=5, pady=5
+            )
 
         for i in range(size):
             row_entries = []
-            ttk.Label(self.matrix_frame, text=f"Fila {i + 1}", font=('Arial', 9, 'bold')).grid(row=i + 1, column=0,
-                                                                                               padx=5, pady=5)
+            ttk.Label(self.matrix_frame, text=f"Fila {i + 1}", font=('Arial', 9, 'bold')).grid(
+                row=i + 1, column=0, padx=5, pady=5
+            )
 
             for j in range(size):
                 entry = ttk.Entry(self.matrix_frame, width=8, justify='center')
@@ -283,6 +289,7 @@ class MatrixDiagonalizationApp:
                     self.matrix_entries[i][j].insert(0, "1")
 
     def get_matrix_from_inputs(self):
+
         size = self.matrix_size.get()
         matrix = []
 
@@ -297,162 +304,125 @@ class MatrixDiagonalizationApp:
                     return None
             matrix.append(row)
 
-        return np.array(matrix, dtype=float)
+        return matrix
 
     def export_to_pdf(self):
-        if self.result_matrix is None or not self.result_matrix.any():
+        if self.result_matrix is None:
             messagebox.showerror("Error", "Primero debes calcular la matriz.")
             return
 
         content = self.results_text.get(1.0, tk.END)
-        PDFExporter.export_to_pdf(content)
+        if self.pdf_exporter:
+            self.pdf_exporter.export_to_pdf(content)
 
-    def calculate_power(self):
-        import numpy as np
-        C = self.get_matrix_from_inputs()
-        if C is None:
-            return
-
-        n = self.power.get()
+    def display_results(self, calculation_result):
 
         self.results_text.delete(1.0, tk.END)
 
+        if not calculation_result:
+            return
+
+        self.results_text.insert(tk.END, "\n" + "═" * 70 + "\n")
+        self.results_text.insert(tk.END, "   CÁLCULO DE Cⁿ POR DIAGONALIZACIÓN\n")
+        self.results_text.insert(tk.END, "═" * 70 + "\n\n")
+
+        self.results_text.insert(tk.END,
+                                 f"Matriz de adyacencia C ({calculation_result['size']}×{calculation_result['size']}):\n")
+        matrix_str = self.calculator.matrix_to_str(calculation_result['matrix'])
+        self.results_text.insert(tk.END, matrix_str + "\n\n")
+        self.results_text.insert(tk.END, f"Potencia a calcular: n = {calculation_result['power']}\n\n")
+
+        self.results_text.insert(tk.END, "\n" + "─" * 60 + "\n")
+        self.results_text.insert(tk.END, "PASO 1: Cálculo de autovalores y autovectores\n")
+        self.results_text.insert(tk.END, "─" * 60 + "\n")
+        self.results_text.insert(tk.END, "\nAutovalores y autovectores agrupados:\n")
+        self.results_text.insert(tk.END, "-" * 50 + "\n")
+
+        for i, group in enumerate(calculation_result['eigenvalues_groups']):
+            eigenvalue = group[0][0]
+            self.results_text.insert(
+                tk.END,
+                f"\nGrupo {i + 1}: Autovalor λ = {self.calculator.format_eigenvalue(eigenvalue)}\n"
+            )
+
+            for j, (_, eigenvector) in enumerate(group):
+                self.results_text.insert(
+                    tk.END,
+                    f"   Autovector {j + 1}: {self.calculator.format_eigenvector(eigenvector)}\n"
+                )
+
+        self.results_text.insert(tk.END, "-" * 50 + "\n")
+
+        self.results_text.insert(tk.END, "\nPASO 2: Construcción de matrices P, D y P⁻¹\n")
+        self.results_text.insert(
+            tk.END,
+            f"\nMatriz P (autovectores como columnas):\n{self.calculator.matrix_to_str_fractions(calculation_result['P'])}\n"
+        )
+        self.results_text.insert(
+            tk.END,
+            f"\nMatriz D (autovalores en diagonal):\n{self.calculator.matrix_to_str_fractions(calculation_result['D'])}\n"
+        )
+        self.results_text.insert(
+            tk.END,
+            f"\nMatriz P⁻¹:\n{self.calculator.matrix_to_str_fractions(calculation_result['P_inv'])}\n"
+        )
+
+        self.results_text.insert(tk.END, "\nPASO 3: Cálculo de Dⁿ\n")
+        self.results_text.insert(
+            tk.END,
+            f"\nDⁿ (cada autovalor elevado a {calculation_result['power']}):\n"
+            f"{self.calculator.matrix_to_str_fractions(calculation_result['D_power'])}\n"
+        )
+
+        self.results_text.insert(tk.END, "\nPASO 4: Cálculo de Cⁿ = P × Dⁿ × P⁻¹\n")
+        self.results_text.insert(
+            tk.END,
+            f"\nMatriz resultante Cⁿ:\n{self.calculator.matrix_to_str_fractions(calculation_result['result'])}\n"
+        )
+
+        if calculation_result.get('warning'):
+            self.results_text.insert(1.0,
+                                     "\nADVERTENCIA: Posible error numérico detectado\n"
+                                     "   Los resultados pueden tener errores de precisión significativos.\n"
+                                     "   Se recomienda verificar manualmente para cálculos críticos.\n\n"
+                                     )
+
+        self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
+        self.results_text.insert(tk.END, "PASO 5: Interpretación en el contexto de redes\n")
+        self.results_text.insert(tk.END, f"\nINTERPRETACIÓN DE RESULTADOS (n = {calculation_result['power']}):\n\n")
+
+        if 'interpretation' in calculation_result:
+            self.results_text.insert(tk.END, calculation_result['interpretation'])
+        else:
+            self.results_text.insert(tk.END,
+                                     "• La matriz Cⁿ muestra todos los caminos de longitud n entre dispositivos.\n"
+                                     "• Valores altos indican muchas conexiones indirectas entre nodos.\n"
+                                     "• Una red está mejor conectada si hay múltiples caminos entre nodos.\n"
+                                     "• Los elementos diagonales representan ciclos (caminos que regresan al origen).\n"
+                                     )
+
+        self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
+        self.results_text.insert(tk.END, "✓ Cálculo completado exitosamente\n")
+        if calculation_result.get('warning'):
+            self.results_text.insert(tk.END, "⚠ Nota: Ver advertencia al inicio de los resultados.\n")
+        self.results_text.insert(tk.END, "=" * 60 + "\n")
+
+    def calculate_power(self):
+        if not self.calculator:
+            messagebox.showerror("Error", "Calculadora no disponible")
+            return
+
+        matrix_data = self.get_matrix_from_inputs()
+        if matrix_data is None:
+            return
+
         try:
-            results = MatrixCalculator.calculate_power(C, n)
+            result = self.calculator.calculate_power(matrix_data, self.power.get())
 
-            self.results_text.insert(tk.END, "\n" + "═" * 70 + "\n")
-            self.results_text.insert(tk.END, "   CÁLCULO DE Cⁿ POR DIAGONALIZACIÓN\n")
-            self.results_text.insert(tk.END, "═" * 70 + "\n\n")
+            self.result_matrix = result['result']
 
-            self.results_text.insert(tk.END, f"Matriz de adyacencia C ({results['size']}×{results['size']}):\n")
-            self.results_text.insert(tk.END, MatrixCalculator.matrix_to_str(C) + "\n\n")
-            self.results_text.insert(tk.END, f"Potencia a calcular: n = {n}\n\n")
+            self.display_results(result)
 
-            self.results_text.insert(tk.END, "\n" + "─" * 60 + "\n")
-            self.results_text.insert(tk.END, "PASO 1: Cálculo de autovalores y autovectores\n")
-            self.results_text.insert(tk.END, "─" * 60 + "\n")
-
-            self.results_text.insert(tk.END, "\nAutovalores y autovectores agrupados:\n")
-            self.results_text.insert(tk.END, "-" * 50 + "\n")
-
-            for i, group in enumerate(results['eigenvalues_groups']):
-                eigenvalue = group[0][0]
-                self.results_text.insert(tk.END,
-                                         f"\nGrupo {i + 1}: Autovalor λ = {MatrixCalculator.format_eigenvalue(eigenvalue)}\n")
-
-                for j, (_, eigenvector) in enumerate(group):
-                    self.results_text.insert(tk.END,
-                                             f"   Autovector {j + 1}: {MatrixCalculator.format_eigenvector(eigenvector)}\n")
-
-            self.results_text.insert(tk.END, "-" * 50 + "\n")
-
-            self.results_text.insert(tk.END, "\nPASO 2: Construcción de matrices P, D y P⁻¹\n")
-            self.results_text.insert(tk.END,
-                                     f"\nMatriz P (autovectores como columnas):\n{MatrixCalculator.matrix_to_str_fractions(results['P'])}\n")
-            self.results_text.insert(tk.END,
-                                     f"\nMatriz D (autovalores en diagonal):\n{MatrixCalculator.matrix_to_str_fractions(results['D'])}\n")
-            self.results_text.insert(tk.END,
-                                     f"\nMatriz P⁻¹:\n{MatrixCalculator.matrix_to_str_fractions(results['P_inv'])}\n")
-
-            self.results_text.insert(tk.END, "\nPASO 3: Cálculo de Dⁿ\n")
-            self.results_text.insert(tk.END,
-                                     f"\nDⁿ (cada autovalor elevado a {n}):\n{MatrixCalculator.matrix_to_str_fractions(results['D_power'])}\n")
-
-            self.results_text.insert(tk.END, "\nPASO 4: Cálculo de Cⁿ = P × Dⁿ × P⁻¹\n")
-            self.results_text.insert(tk.END,
-                                     f"\nMatriz resultante Cⁿ:\n{MatrixCalculator.matrix_to_str_fractions(results['result'])}\n")
-
-            warning_shown = False
-            if results['direct_power'] is not None:
-                C_power_normalized = results['result'].astype(float)
-                C_power_direct_normalized = results['direct_power'].astype(float)
-                max_abs_direct = np.max(np.abs(C_power_direct_normalized))
-                if max_abs_direct > 1e-10:
-                    rel_error = np.max(np.abs(C_power_normalized - C_power_direct_normalized) / max_abs_direct)
-                    if rel_error > 1e-5:
-                        warning_shown = True
-
-            if warning_shown:
-                self.results_text.insert(1.0,
-                                         "\nADVERTENCIA: Posible error numérico detectado\n"
-                                         "   Los resultados pueden tener errores de precisión significativos.\n"
-                                         "   Se recomienda verificar manualmente para cálculos críticos.\n\n"
-                                         )
-
-            self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
-            self.results_text.insert(tk.END, "PASO 5: Interpretación en el contexto de redes\n")
-            self.results_text.insert(tk.END, f"\nINTERPRETACIÓN DE RESULTADOS(n = {n}):\n\n")
-
-            size = results['size']
-            C_power = results['result']
-
-            if size > 0:
-                diag_idx = 0
-                diag_value = C_power[diag_idx, diag_idx]
-                try:
-                    if abs(diag_value - round(diag_value)) > 1e-8:
-                        frac = Fraction(diag_value).limit_denominator(20)
-                        gcd_val = math.gcd(abs(frac.numerator), frac.denominator)
-                        num_simple = frac.numerator // gcd_val
-                        denom_simple = frac.denominator // gcd_val
-                        if denom_simple == 1:
-                            diag_str = f"{num_simple}"
-                        else:
-                            diag_str = f"{num_simple}/{denom_simple}"
-                    else:
-                        diag_str = f"{int(round(diag_value))}"
-                except:
-                    diag_str = f"{diag_value:.2f}"
-
-                self.results_text.insert(tk.END,
-                                         f"• Elemento en la diagonal Cⁿ[{diag_idx + 1},{diag_idx + 1}] = {diag_str}\n")
-                self.results_text.insert(tk.END,
-                                         f"  Representa el número de caminos de longitud {n} desde el dispositivo {diag_idx + 1} "
-                                         f"hasta sí mismo (ciclos de longitud {n}).\n\n")
-
-            if size > 1:
-                off_diag_row, off_diag_col = 0, 1
-                off_diag_value = C_power[off_diag_row, off_diag_col]
-                try:
-                    if abs(off_diag_value - round(off_diag_value)) > 1e-8:
-                        frac = Fraction(off_diag_value).limit_denominator(20)
-                        gcd_val = math.gcd(abs(frac.numerator), frac.denominator)
-                        num_simple = frac.numerator // gcd_val
-                        denom_simple = frac.denominator // gcd_val
-                        if denom_simple == 1:
-                            off_diag_str = f"{num_simple}"
-                        else:
-                            off_diag_str = f"{num_simple}/{denom_simple}"
-                    else:
-                        off_diag_str = f"{int(round(off_diag_value))}"
-                except:
-                    off_diag_str = f"{off_diag_value:.2f}"
-
-                self.results_text.insert(tk.END,
-                                         f"• Elemento fuera de la diagonal Cⁿ[{off_diag_row + 1},{off_diag_col + 1}] = {off_diag_str}\n")
-                self.results_text.insert(tk.END,
-                                         f"  Representa el número de caminos de longitud {n} desde el dispositivo {off_diag_row + 1} "
-                                         f"hasta el dispositivo {off_diag_col + 1}.\n\n")
-
-            self.results_text.insert(tk.END, "INFORMACIÓN ADICIONAL PARA ANÁLISIS DE REDES:\n")
-            self.results_text.insert(tk.END,
-                                     f"• La matriz Cⁿ muestra todos los caminos de longitud {n} entre dispositivos.\n")
-            self.results_text.insert(tk.END, "• Valores altos indican muchas conexiones indirectas entre nodos.\n")
-            self.results_text.insert(tk.END, "• Una red está mejor conectada si hay múltiples caminos entre nodos.\n")
-            self.results_text.insert(tk.END,
-                                     "• Los elementos diagonales representan ciclos (caminos que regresan al origen).\n")
-            self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
-
-            self.results_text.insert(tk.END, "✓ Cálculo completado exitosamente\n")
-            if warning_shown:
-                self.results_text.insert(tk.END, "⚠ Nota: Ver advertencia al inicio de los resultados.\n")
-            self.results_text.insert(tk.END, "=" * 60 + "\n")
-
-            self.result_matrix = C_power
-
-        except np.linalg.LinAlgError as e:
-            messagebox.showerror("Error de cálculo", f"No se pudo diagonalizar la matriz:\n{str(e)}")
-            self.results_text.insert(tk.END, f"ERROR: {str(e)}\n")
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error inesperado:\n{str(e)}")
+            messagebox.showerror("Error", f"Ocurrió un error:\n{str(e)}")
             self.results_text.insert(tk.END, f"ERROR: {str(e)}\n")
