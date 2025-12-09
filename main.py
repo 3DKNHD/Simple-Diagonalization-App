@@ -22,6 +22,109 @@ class MatrixDiagonalizationApp:
 
         self.setup_ui()
 
+    #INTERFAZ
+    def setup_ui(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure("TLabel", font=("Segoe UI", 10))
+        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"))
+        style.configure("Header.TLabel", font=("Segoe UI", 12, "bold"))
+        style.configure("TButton", font=("Segoe UI", 10), padding=6)
+        style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"), padding=10)
+
+        main_frame = ttk.Frame(self.root, padding=15)
+        main_frame.grid(row=0, column=0, sticky="nsew")
+
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=3)
+        main_frame.rowconfigure(3, weight=1)
+
+        ttk.Label(
+            main_frame,
+            text="Diagonalización de Matrices de Adyacencia",
+            style="Title.TLabel"
+        ).grid(row=0, column=0, columnspan=2, pady=(0, 10))
+
+        ttk.Label(
+            main_frame,
+            text="Calcula Cⁿ usando autovalores:  Cⁿ = P Dⁿ P⁻¹",
+            foreground="#555"
+        ).grid(row=1, column=0, columnspan=2, pady=(0, 15))
+
+        config_frame = ttk.LabelFrame(main_frame, text="⚙ Configuración", padding=10)
+        config_frame.grid(row=2, column=0, sticky="nsw", padx=(0, 10))
+
+        ttk.Label(config_frame, text="Tamaño de la matriz (n×n)").grid(row=0, column=0, sticky="w")
+        ttk.Spinbox(
+            config_frame, from_=2, to=10, textvariable=self.matrix_size,
+            width=6, command=self.create_matrix_inputs
+        ).grid(row=1, column=0, pady=(0, 10))
+
+        ttk.Label(config_frame, text="Potencia n").grid(row=2, column=0, sticky="w")
+        ttk.Spinbox(
+            config_frame, from_=1, to=20, textvariable=self.power, width=6
+        ).grid(row=3, column=0, pady=(0, 15))
+
+        ttk.Button(
+            config_frame, text="Crear matriz",
+            command=self.create_matrix_inputs,
+            style="Secondary.TButton"
+        ).grid(row=4, column=0, sticky="ew", pady=5)
+
+        ttk.Button(
+            config_frame, text="Cargar ejemplo 3×3",
+            command=self.load_example,
+            style="Secondary.TButton"
+        ).grid(row=5, column=0, sticky="ew")
+
+        ttk.Button(
+            config_frame,
+            text="Calcular Cⁿ",
+            command=self.calculate_power,
+            style="Primary.TButton"
+        ).grid(row=6, column=0, sticky="ew", pady=(20, 0))
+
+        ttk.Button(
+            config_frame,
+            text="Exportar a PDF",
+            command=self.export_to_pdf,
+            style="Danger.TButton"
+        ).grid(row=7, column=0, sticky="ew", pady=5)
+
+        ttk.Button(
+            config_frame,
+            text="Alternar modo oscuro",
+            command=self.toggle_dark_mode,
+            style="Neutral.TButton"
+        ).grid(row=8, column=0, sticky="ew", pady=5)
+        self.update_button_styles()
+
+        right_frame = ttk.Frame(main_frame)
+        right_frame.grid(row=2, column=1, sticky="nsew")
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(1, weight=1)
+
+        self.matrix_frame = ttk.LabelFrame(right_frame, text="🧮 Matriz de Adyacencia", padding=10)
+        self.matrix_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+        results_frame = ttk.LabelFrame(right_frame, text="📊 Resultados paso a paso", padding=10)
+        results_frame.grid(row=1, column=0, sticky="nsew")
+        results_frame.columnconfigure(0, weight=1)
+        results_frame.rowconfigure(0, weight=1)
+
+        self.results_text = scrolledtext.ScrolledText(
+            results_frame,
+            height=18,
+            wrap=tk.WORD,
+            font=("Consolas", 10)
+        )
+        self.results_text.grid(row=0, column=0, sticky="nsew")
+
+        self.create_matrix_inputs()
+
     def toggle_dark_mode(self):
         self.dark_mode = not self.dark_mode
         style = ttk.Style()
@@ -144,143 +247,7 @@ class MatrixDiagonalizationApp:
             style.map("TButton",
                       background=[("active", "#CCCCCC")])
 
-    def export_to_pdf(self):
-        if self.result_matrix is None or not self.result_matrix.any():
-            messagebox.showerror("Error", "Primero debes calcular la matriz.")
-            return
-
-        filepath = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("Archivos PDF", "*.pdf")],
-            title="Guardar PDF como"
-        )
-
-        if not filepath:
-            return
-
-        c = canvas.Canvas(filepath, pagesize=letter)
-        width, height = letter
-
-        text = c.beginText(40, height - 50)
-        text.setFont("Courier", 9)
-
-        contenido = self.results_text.get(1.0, tk.END).split("\n")
-
-        for line in contenido:
-            text.textLine(line)
-            if text.getY() < 40:
-                c.drawText(text)
-                c.showPage()
-                text = c.beginText(40, height - 50)
-                text.setFont("Courier", 9)
-
-        c.drawText(text)
-        c.save()
-
-        messagebox.showinfo("PDF generado", f"Archivo guardado en:\n{filepath}")
-
-    def setup_ui(self):
-        style = ttk.Style()
-        style.theme_use("clam")
-
-        style.configure("TLabel", font=("Segoe UI", 10))
-        style.configure("Title.TLabel", font=("Segoe UI", 18, "bold"))
-        style.configure("Header.TLabel", font=("Segoe UI", 12, "bold"))
-        style.configure("TButton", font=("Segoe UI", 10), padding=6)
-        style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"), padding=10)
-
-        main_frame = ttk.Frame(self.root, padding=15)
-        main_frame.grid(row=0, column=0, sticky="nsew")
-
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=3)
-        main_frame.rowconfigure(3, weight=1)
-
-        ttk.Label(
-            main_frame,
-            text="Diagonalización de Matrices de Adyacencia",
-            style="Title.TLabel"
-        ).grid(row=0, column=0, columnspan=2, pady=(0, 10))
-
-        ttk.Label(
-            main_frame,
-            text="Calcula Cⁿ usando autovalores:  Cⁿ = P Dⁿ P⁻¹",
-            foreground="#555"
-        ).grid(row=1, column=0, columnspan=2, pady=(0, 15))
-
-        config_frame = ttk.LabelFrame(main_frame, text="⚙ Configuración", padding=10)
-        config_frame.grid(row=2, column=0, sticky="nsw", padx=(0, 10))
-
-        ttk.Label(config_frame, text="Tamaño de la matriz (n×n)").grid(row=0, column=0, sticky="w")
-        ttk.Spinbox(
-            config_frame, from_=2, to=10, textvariable=self.matrix_size,
-            width=6, command=self.create_matrix_inputs
-        ).grid(row=1, column=0, pady=(0, 10))
-
-        ttk.Label(config_frame, text="Potencia n").grid(row=2, column=0, sticky="w")
-        ttk.Spinbox(
-            config_frame, from_=1, to=20, textvariable=self.power, width=6
-        ).grid(row=3, column=0, pady=(0, 15))
-
-        ttk.Button(
-            config_frame, text="Crear matriz",
-            command=self.create_matrix_inputs,
-            style="Secondary.TButton"
-        ).grid(row=4, column=0, sticky="ew", pady=5)
-
-        ttk.Button(
-            config_frame, text="Cargar ejemplo 3×3",
-            command=self.load_example,
-            style="Secondary.TButton"
-        ).grid(row=5, column=0, sticky="ew")
-
-        ttk.Button(
-            config_frame,
-            text="Calcular Cⁿ",
-            command=self.calculate_power,
-            style="Primary.TButton"
-        ).grid(row=6, column=0, sticky="ew", pady=(20, 0))
-
-        ttk.Button(
-            config_frame,
-            text="Exportar a PDF",
-            command=self.export_to_pdf,
-            style="Danger.TButton"
-        ).grid(row=7, column=0, sticky="ew", pady=5)
-
-        ttk.Button(
-            config_frame,
-            text="Alternar modo oscuro",
-            command=self.toggle_dark_mode,
-            style="Neutral.TButton"
-        ).grid(row=8, column=0, sticky="ew", pady=5)
-        self.update_button_styles()
-
-        right_frame = ttk.Frame(main_frame)
-        right_frame.grid(row=2, column=1, sticky="nsew")
-        right_frame.columnconfigure(0, weight=1)
-        right_frame.rowconfigure(1, weight=1)
-
-        self.matrix_frame = ttk.LabelFrame(right_frame, text="🧮 Matriz de Adyacencia", padding=10)
-        self.matrix_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-
-        results_frame = ttk.LabelFrame(right_frame, text="📊 Resultados paso a paso", padding=10)
-        results_frame.grid(row=1, column=0, sticky="nsew")
-        results_frame.columnconfigure(0, weight=1)
-        results_frame.rowconfigure(0, weight=1)
-
-        self.results_text = scrolledtext.ScrolledText(
-            results_frame,
-            height=18,
-            wrap=tk.WORD,
-            font=("Consolas", 10)
-        )
-        self.results_text.grid(row=0, column=0, sticky="nsew")
-
-        self.create_matrix_inputs()
-
+    # LOGICA
     def create_matrix_inputs(self):
         for widget in self.matrix_frame.winfo_children():
             widget.destroy()
@@ -337,6 +304,41 @@ class MatrixDiagonalizationApp:
             matrix.append(row)
 
         return np.array(matrix, dtype=float)
+
+    def export_to_pdf(self):
+        if self.result_matrix is None or not self.result_matrix.any():
+            messagebox.showerror("Error", "Primero debes calcular la matriz.")
+            return
+
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("Archivos PDF", "*.pdf")],
+            title="Guardar PDF como"
+        )
+
+        if not filepath:
+            return
+
+        c = canvas.Canvas(filepath, pagesize=letter)
+        width, height = letter
+
+        text = c.beginText(40, height - 50)
+        text.setFont("Courier", 9)
+
+        contenido = self.results_text.get(1.0, tk.END).split("\n")
+
+        for line in contenido:
+            text.textLine(line)
+            if text.getY() < 40:
+                c.drawText(text)
+                c.showPage()
+                text = c.beginText(40, height - 50)
+                text.setFont("Courier", 9)
+
+        c.drawText(text)
+        c.save()
+
+        messagebox.showinfo("PDF generado", f"Archivo guardado en:\n{filepath}")
 
     def find_simple_eigenvectors(self, eigenvectors, eigenvalues):
         size = eigenvectors.shape[0]
@@ -661,17 +663,14 @@ class MatrixDiagonalizationApp:
                     # Error relativo máximo
                     rel_error = np.max(np.abs(C_power_normalized - C_power_direct_normalized) / max_abs_direct)
 
-                    # Solo mostrar advertencia si el error es significativo
-                    if rel_error > 1e-5:  # Más del 0.001% de error relativo
+                    if rel_error > 1e-5:
                         warning_shown = True
 
             self.results_text.insert(tk.END, f"\nMatriz resultante Cⁿ:\n{self.matrix_to_str_fractions(C_power)}\n")
 
-            # ========== MOSTRAR ADVERTENCIA SI ES NECESARIO ==========
             if warning_shown:
-                # Solo mostrar una vez al inicio de los resultados
                 self.results_text.insert(1.0,
-                                         "\n⚠️ ADVERTENCIA: Posible error numérico detectado\n"
+                                         "\nADVERTENCIA: Posible error numérico detectado\n"
                                          "   Los resultados pueden tener errores de precisión significativos.\n"
                                          "   Se recomienda verificar manualmente para cálculos críticos.\n\n"
                                          )
@@ -757,7 +756,6 @@ def main():
     root = tk.Tk()
     app = MatrixDiagonalizationApp(root)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
