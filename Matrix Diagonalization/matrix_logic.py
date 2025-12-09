@@ -232,7 +232,9 @@ class MatrixCalculator:
         #PARA GENERALIZAR LA BAZOFIA ESTA PARA MATRICES QUE SEAN PONDERADAS PONERLO FLOAT
         C = np.array(matrix, dtype=int)
 
-        if np.any(C != 0) and np.any(C != 1):
+        C_unique_values = np.unique(C)
+
+        if not set(C_unique_values).issubset({0,1}) or not len(C_unique_values) > 0:
             raise ValueError("Ponderada!")
 
         size = len(C)
