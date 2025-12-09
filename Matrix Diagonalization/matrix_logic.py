@@ -228,8 +228,8 @@ class MatrixCalculator:
     @staticmethod
     def calculate_power(matrix, power):
 
-        #ACA LO VOY A TOMAR COMO ENTERO PARA ESTE CASO
-        #PARA GENERALIZAR LA BAZOFIA ESTA PARA MATRICES QUE SEAN PONDERADAS PONERLO FLOAT
+        #For This Case I`ll use integers
+        #If you want it more general just use float
         C = np.array(matrix, dtype=int)
 
         C_unique_values = np.unique(C)

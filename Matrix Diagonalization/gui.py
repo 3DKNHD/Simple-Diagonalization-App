@@ -404,7 +404,7 @@ class MatrixDiagonalizationApp:
         self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
         self.results_text.insert(tk.END, "✓ Cálculo completado exitosamente\n")
         if calculation_result.get('warning'):
-            self.results_text.insert(tk.END, "⚠ Nota: Ver advertencia al inicio de los resultados.\n")
+            self.results_text.insert(tk.END, "Nota: Ver advertencia al inicio de los resultados.\n")
         self.results_text.insert(tk.END, "=" * 60 + "\n")
 
     def calculate_power(self):
@@ -424,7 +424,7 @@ class MatrixDiagonalizationApp:
             self.display_results(result)
 
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error:\n{str(e)}")
+            messagebox.showerror("Error", f"Ocurrió un error!")
             self.results_text.delete(1.0, tk.END)
             if str(e) == "Singular matrix":
                 self.results_text.insert(tk.END, f"ERROR: No coincide la multiplicidad de los valores propios con la Dimensión de los subespacios propios asociados a estos\nNO DIAGONALIZABLE\n")
