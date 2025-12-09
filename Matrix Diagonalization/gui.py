@@ -425,4 +425,10 @@ class MatrixDiagonalizationApp:
 
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error:\n{str(e)}")
-            self.results_text.insert(tk.END, f"ERROR: {str(e)}\n")
+            self.results_text.delete(1.0, tk.END)
+            if str(e) == "Singular matrix":
+                self.results_text.insert(tk.END, f"ERROR: No coincide la multiplicidad de los valores propios con la Dimensión de los subespacios propios asociados a estos\nNO DIAGONALIZABLE\n")
+            elif str(e) == "No reales":
+                self.results_text.insert(tk.END, f"ERROR: Todos los valores propios no son reales\nNO DIAGONALIZABLE\n")
+            else:
+                self.results_text.insert(tk.END, "Error", f"Ocurrió un error:\n{str(e)}")

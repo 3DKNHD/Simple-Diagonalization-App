@@ -1,9 +1,13 @@
+from enum import nonmember
+
 import numpy as np
 from fractions import Fraction
 import math
 
 
 class MatrixCalculator:
+
+
     @staticmethod
     def find_simple_eigenvectors(eigenvectors, eigenvalues):
         size = eigenvectors.shape[0]
@@ -225,10 +229,14 @@ class MatrixCalculator:
     def calculate_power(matrix, power):
         C = np.array(matrix, dtype=float)
         size = len(C)
+        eigenvalues, eigenvectors = np.linalg.eig(C)
+
+        if not np.all(np.isreal(eigenvalues)):
+            raise ValueError("No reales")
 
         C_power_direct = np.linalg.matrix_power(C, power) if hasattr(np.linalg, 'matrix_power') else None
 
-        eigenvalues, eigenvectors = np.linalg.eig(C)
+
         groups = MatrixCalculator.group_eigenvalues_eigenvectors(eigenvalues, eigenvectors)
 
         all_eigenvalues = []
