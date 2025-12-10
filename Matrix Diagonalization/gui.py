@@ -429,7 +429,7 @@ class MatrixDiagonalizationApp:
             if str(e) == "Singular matrix":
                 self.results_text.insert(tk.END, f"ERROR: No coincide la multiplicidad de los valores propios con la Dimensión de los subespacios propios asociados a estos\nNO DIAGONALIZABLE\n")
             elif str(e) == "No reales":
-                self.results_text.insert(tk.END, f"ERROR: Todos los valores propios no son reales\nNO DIAGONALIZABLE\n")
+                self.results_text.insert(tk.END, f"ERROR: Algunos valores propios no son reales\nNO DIAGONALIZABLE\n")
             elif str(e) == "Ponderada!":
                 self.results_text.insert(tk.END, f"ERROR: Como la matriz tiene pesos no se cumple la propiedad!\nNO CUMPLE LA PROPIEDAD\n")
             else:
