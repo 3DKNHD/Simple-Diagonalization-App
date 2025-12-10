@@ -49,7 +49,7 @@ class MatrixDiagonalizationApp:
 
         ttk.Label(
             main_frame,
-            text="Calcula Cⁿ usando autovalores:  Cⁿ = P Dⁿ P⁻¹",
+            text="Calcula Cⁿ usando autovalores:  Cⁿ = P * Dⁿ * P⁻¹",
             foreground="#555",
             style = "Title.TLabel"
         ).grid(row=1, column=0, columnspan=2, pady=(0, 15))
@@ -335,14 +335,14 @@ class MatrixDiagonalizationApp:
         self.results_text.insert(tk.END, "\n" + "─" * 60 + "\n")
         self.results_text.insert(tk.END, "PASO 1: Cálculo de autovalores y autovectores\n")
         self.results_text.insert(tk.END, "─" * 60 + "\n")
-        self.results_text.insert(tk.END, "\nAutovalores y autovectores agrupados:\n")
+        self.results_text.insert(tk.END, "\nAutovalores y autovectores asociados:\n")
         self.results_text.insert(tk.END, "-" * 50 + "\n")
 
         for i, group in enumerate(calculation_result['eigenvalues_groups']):
             eigenvalue = group[0][0]
             self.results_text.insert(
                 tk.END,
-                f"\nGrupo {i + 1}: Autovalor λ = {self.calculator.format_eigenvalue(eigenvalue)}\n"
+                f"\nAutovalor λ = {self.calculator.format_eigenvalue(eigenvalue)}\n"
             )
 
             for j, (_, eigenvector) in enumerate(group):
@@ -374,7 +374,7 @@ class MatrixDiagonalizationApp:
             f"{self.calculator.matrix_to_str_fractions(calculation_result['D_power'])}\n"
         )
 
-        self.results_text.insert(tk.END, "\nPASO 4: Cálculo de Cⁿ = P × Dⁿ × P⁻¹\n")
+        self.results_text.insert(tk.END, "\nPASO 4: Cálculo de Cⁿ = P * Dⁿ * P⁻¹\n")
         self.results_text.insert(
             tk.END,
             f"\nMatriz resultante Cⁿ:\n{self.calculator.matrix_to_str_fractions(calculation_result['result'])}\n"
@@ -402,7 +402,7 @@ class MatrixDiagonalizationApp:
                                      )
 
         self.results_text.insert(tk.END, "\n" + "=" * 60 + "\n")
-        self.results_text.insert(tk.END, "✓ Cálculo completado exitosamente\n")
+        self.results_text.insert(tk.END, "Cálculo completado exitosamente\n")
         if calculation_result.get('warning'):
             self.results_text.insert(tk.END, "Nota: Ver advertencia al inicio de los resultados.\n")
         self.results_text.insert(tk.END, "=" * 60 + "\n")
