@@ -57,7 +57,7 @@ class MatrixDiagonalizationApp:
         config_frame = ttk.LabelFrame(main_frame, text="Configuración", padding=10)
         config_frame.grid(row=2, column=0, sticky="nsw", padx=(0, 10))
 
-        ttk.Label(config_frame, text="Tamaño de la matriz (n×n)").grid(row=0, column=0, sticky="w")
+        ttk.Label(config_frame, text="Orden de la matriz (n×n)").grid(row=0, column=0, sticky="w")
         ttk.Spinbox(
             config_frame, from_=2, to=10, textvariable=self.matrix_size,
             width=6, command=self.create_matrix_inputs
