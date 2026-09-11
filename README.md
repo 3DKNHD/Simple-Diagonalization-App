@@ -3,179 +3,99 @@
 ## English
 
 ### Project Description
-A Python application that computes the n-th power of an adjacency matrix using diagonalization (Cⁿ = P Dⁿ P⁻¹). Developed as a final project for Linear Algebra, this tool visualizes the step-by-step diagonalization process and generates detailed PDF reports.
+A Python desktop app that computes the n-th power of a square matrix by diagonalization (`Cⁿ = P Dⁿ P⁻¹`). It started as a Linear Algebra final project and now handles general real matrices, not only unweighted adjacency matrices.
 
 ### Features
-- **Diagonalization Method**: Computes matrix powers via C = PDP⁻¹ → Cⁿ = PDⁿP⁻¹
-- **Adjacency Matrix Support**: Currently supports unweighted adjacency matrices (0s and 1s only)
-- **Interactive GUI**: User-friendly interface with matrix input and real-time validation
-- **PDF Export**: Generates professional reports with complete calculation steps
-- **Error Handling**: Validates matrix properties and provides clear error messages
-- **Dark/Light Mode**: Toggleable interface themes
+- **Diagonalization method**: `Cⁿ = P Dⁿ P⁻¹` when `C` is diagonalizable over ℝ
+- **General matrices**: integer or real entries, including weighted/symmetric cases
+- **Optional adjacency mode**: restrict inputs to 0/1 and interpret `Cⁿ` as walks of length `n`
+- **Diagonalizability checks**: real eigenvalues, algebraic vs geometric multiplicity, invertibility of `P`
+- **Interactive GUI**: examples, dark mode, copy results, PDF export
+- **Numerical verification**: residual `||C − P D P⁻¹||` compared with direct `matrix_power`
 
 ### Requirements
 - Python 3.8+
-- NumPy (>=1.21.0) - for matrix operations and eigenvalue decomposition
-- ReportLab (>=3.6.0) - for PDF report generation
+- NumPy (>=1.21.0)
+- ReportLab (>=3.6.0)
+- Tkinter (on Ubuntu/Debian: `sudo apt install python3-tk`)
 
 ### Installation
-1. Clone or download the project
-2. Install dependencies:
 ```bash
-pip install numpy>=1.21.0 reportlab>=3.6.0
-```
-
-### Project Structure
-```
-matrix_diagonalization/
-├── main.py                 # Main entry point - launches the application
-├── matrix_logic.py         # Core matrix calculations and diagonalization logic
-├── pdf_exporter.py         # PDF export functionality using ReportLab
-├── gui.py                  # Graphical user interface (Tkinter)
-└── requirements.txt        # Python dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Usage
-
-#### Launch the Application
 ```bash
 python main.py
 ```
-
-#### Using the GUI
-1. Set matrix size (2×2 to 10×10)
-2. Enter matrix values (0s and 1s for adjacency matrices)
-3. Specify the power (n)
-4. Click "Calculate Cⁿ" to compute the result
-5. Use "Export to PDF" to save the calculation steps
-
-#### Example Matrix
-For a 3×3 adjacency matrix of a simple path graph:
+or:
+```bash
+python -m matrix_diagonalization
 ```
-[0, 1, 1]
-[1, 0, 1]
-[1, 1, 0]
+
+1. Set the matrix size (2×2 to 10×10) and the power `n` (0 to 50)
+2. Enter the matrix, or load an example from the list
+3. Optionally enable “Solo adyacencia (0 y 1)” for graph interpretation
+4. Click **Calcular Cⁿ** (or `Ctrl+Enter`)
+5. Export the step-by-step report to PDF if you want
+
+### Tests
+```bash
+python -m unittest tests.test_calculator -v
 ```
-Calculating C³ shows the number of paths of length 3 between nodes.
-
-### Calculation Process
-1. **Eigenvalue/Vector Computation**: Finds eigenvalues and eigenvectors of the matrix
-2. **Diagonalization**: Constructs P (eigenvectors), D (diagonal eigenvalues), and P⁻¹
-3. **Power Calculation**: Computes Dⁿ (diagonal matrix with eigenvaluesⁿ)
-4. **Reconstruction**: Calculates Cⁿ = P × Dⁿ × P⁻¹
-5. **Verification**: Compares with direct computation (if available)
-
-### PDF Report Contents
-- Input matrix and parameters
-- Eigenvalues and eigenvectors (grouped by eigenvalue)
-- Matrices P, D, and P⁻¹
-- Dⁿ calculation
-- Final result Cⁿ
-- Interpretation in graph theory context
-- Timestamp and calculation details
-
-
-### Academic Context
-This project demonstrates:
-- Matrix diagonalization theory
-- Eigenvalue decomposition applications
-- Graph theory connections (adjacency matrix powers)
-- Numerical stability considerations
-- Professional technical reporting
 
 ### License
-MIT License - For academic and educational use
+MIT License — academic and educational use welcome.
 
 ---
 
 ## Español
 
-### Descripción del Proyecto
-Una aplicación Python que calcula la n-ésima potencia de una matriz de adyacencia usando diagonalización (Cⁿ = P Dⁿ P⁻¹). Desarrollada como proyecto final de Álgebra Lineal, esta herramienta visualiza el proceso de diagonalización paso a paso y genera reportes PDF detallados.
+### Descripción
+Aplicación de escritorio en Python que calcula la n-ésima potencia de una matriz cuadrada por diagonalización (`Cⁿ = P Dⁿ P⁻¹`). Nació como proyecto final de Álgebra Lineal y ahora admite matrices reales generales, no solo adyacencia 0-1.
 
 ### Características
-- **Método de Diagonalización**: Calcula potencias matriciales mediante C = PDP⁻¹ → Cⁿ = PDⁿP⁻¹
-- **Soporte para Matrices de Adyacencia**: Actualmente solo matrices no ponderadas (solo 0s y 1s)
-- **Interfaz Gráfica Interactiva**: Interfaz amigable con entrada matricial y validación en tiempo real
-- **Exportación PDF**: Genera reportes profesionales con pasos completos de cálculo
-- **Manejo de Errores**: Valida propiedades matriciales y proporciona mensajes de error claros
-- **Modo Oscuro/Claro**: Temas de interfaz intercambiables
+- **Método de diagonalización**: `Cⁿ = P Dⁿ P⁻¹` si `C` es diagonalizable sobre ℝ
+- **Matrices generales**: enteras o reales, incluidas las ponderadas y simétricas
+- **Modo adyacencia opcional**: solo 0 y 1, e interpreta `Cⁿ` como caminos de longitud `n`
+- **Comprobación de diagonalizabilidad**: autovalores reales, multiplicidad algebraica vs geométrica, invertibilidad de `P`
+- **Interfaz**: ejemplos, modo oscuro, copiar resultados, exportar PDF
+- **Verificación numérica**: residual `||C − P D P⁻¹||` frente al producto directo
 
 ### Requisitos
 - Python 3.8+
-- NumPy (>=1.21.0) - para operaciones matriciales y descomposición de valores propios
-- ReportLab (>=3.6.0) - para generación de reportes PDF
+- NumPy (>=1.21.0)
+- ReportLab (>=3.6.0)
+- Tkinter (en Ubuntu/Debian: `sudo apt install python3-tk`)
 
 ### Instalación
-1. Clona o descarga el proyecto
-2. Instala las dependencias:
 ```bash
-pip install numpy>=1.21.0 reportlab>=3.6.0
-```
-
-### Estructura del Proyecto
-```
-matrix_diagonalization/
-├── main.py                 # Punto de entrada principal - lanza la aplicación
-├── matrix_logic.py         # Cálculos matriciales principales y lógica de diagonalización
-├── pdf_exporter.py         # Funcionalidad de exportación PDF usando ReportLab
-├── gui.py                  # Interfaz gráfica de usuario (Tkinter)
-└── requirements.txt        # Dependencias de Python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Uso
-
-#### Lanzar la Aplicación
 ```bash
 python main.py
 ```
-
-#### Usando la Interfaz Gráfica
-1. Establece el tamaño de la matriz (2×2 a 10×10)
-2. Ingresa los valores de la matriz (0s y 1s para matrices de adyacencia)
-3. Especifica la potencia (n)
-4. Haz clic en "Calcular Cⁿ" para computar el resultado
-5. Usa "Exportar a PDF" para guardar los pasos del cálculo
-
-#### Matriz de Ejemplo
-Para una matriz de adyacencia 3×3 de un grafo camino simple:
+o:
+```bash
+python -m matrix_diagonalization
 ```
-[0, 1, 1]
-[1, 0, 1]
-[1, 1, 0]
+
+1. Elige el orden de la matriz (2×2 a 10×10) y la potencia `n` (0 a 50)
+2. Introduce la matriz o carga un ejemplo
+3. Marca “Solo adyacencia (0 y 1)” si quieres la lectura en teoría de grafos
+4. Pulsa **Calcular Cⁿ** (o `Ctrl+Enter`)
+5. Exporta el desarrollo a PDF si lo necesitas
+
+### Pruebas
+```bash
+python -m unittest tests.test_calculator -v
 ```
-Calcular C³ muestra el número de caminos de longitud 3 entre nodos.
-
-### Proceso de Cálculo
-1. **Cálculo de Valores/Vectores Propios**: Encuentra valores y vectores propios de la matriz
-2. **Diagonalización**: Construye P (vectores propios), D (valores propios diagonales) y P⁻¹
-3. **Cálculo de Potencia**: Computa Dⁿ (matriz diagonal con valores propiosⁿ)
-4. **Reconstrucción**: Calcula Cⁿ = P × Dⁿ × P⁻¹
-5. **Verificación**: Compara con cálculo directo (si está disponible)
-
-### Contenido del Reporte PDF
-- Matriz de entrada y parámetros
-- Valores y vectores propios (agrupados por valor propio)
-- Matrices P, D y P⁻¹
-- Cálculo de Dⁿ
-- Resultado final Cⁿ
-- Interpretación en contexto de teoría de grafos
-- Marca de tiempo y detalles del cálculo
-
-### Contexto Académico
-Este proyecto demuestra:
-- Teoría de diagonalización de matrices
-- Aplicaciones de descomposición en valores propios
-- Conexiones con teoría de grafos (potencias de matrices de adyacencia)
-- Consideraciones de estabilidad numérica
-- Generación de reportes técnicos profesionales
 
 ### Licencia
-Licencia MIT - Para uso académico y educativo
-
----
-
-## Future Development / Desarrollo Futuro
-**English**: The current version supports unweighted adjacency matrices. I'm working on a more general version that will handle weighted matrices.
-
-**Español**: La versión actual soporta matrices de adyacencia no ponderadas. Estoy trabajando en una versión más general que manejará matrices ponderadas.
+Licencia MIT — uso académico y educativo.

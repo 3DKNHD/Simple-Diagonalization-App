@@ -3,14 +3,22 @@ venv/
 env/
 .venv/
 
-# PyCharm / IntelliJ
+# Bitácora local (no versionar)
+bitacora.txt
+
+# PyCharm / IntelliJ / VS Code
 .idea/
+.vscode/
 
-# Archivos compilados de Python
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
 
-# Archivos del sistema
+# Sistema
 .DS_Store
 Thumbs.db
