@@ -1,11 +1,14 @@
-"""Diagonalización de matrices y cálculo de potencias Cⁿ = P Dⁿ P⁻¹."""
+"""Diagonalización exacta de matrices (sympy) y potencia Aⁿ."""
 
-from .calculator import MatrixCalculator
-from .exceptions import InvalidMatrixError, MatrixError, NotDiagonalizableError
+from .engine import analyze, parse_matrix, parse_matrix_text
+from .exceptions import InvalidMatrixError, MatrixError
+from .models import CalculationResult
 
 __all__ = [
-    "MatrixCalculator",
+    "analyze",
+    "parse_matrix",
+    "parse_matrix_text",
+    "CalculationResult",
     "MatrixError",
     "InvalidMatrixError",
-    "NotDiagonalizableError",
 ]
