@@ -3,21 +3,21 @@
 ## English
 
 ### Project Description
-A Python desktop app that computes the n-th power of a square matrix by diagonalization (`Cⁿ = P Dⁿ P⁻¹`). It started as a Linear Algebra final project and now handles general real matrices, not only unweighted adjacency matrices.
+A Streamlit web app that computes the n-th power of a square matrix with **exact arithmetic** (`sympy.Matrix`). When `A` is diagonalizable it uses `Aⁿ = P Dⁿ P⁻¹`; otherwise it falls back to the Jordan form. It started as a Linear Algebra final project for adjacency matrices and now covers general matrices over ℝ or ℂ.
 
 ### Features
-- **Diagonalization method**: `Cⁿ = P Dⁿ P⁻¹` when `C` is diagonalizable over ℝ
-- **General matrices**: integer or real entries, including weighted/symmetric cases
-- **Optional adjacency mode**: restrict inputs to 0/1 and interpret `Cⁿ` as walks of length `n`
-- **Diagonalizability checks**: real eigenvalues, algebraic vs geometric multiplicity, invertibility of `P`
-- **Interactive GUI**: examples, dark mode, copy results, PDF export
-- **Numerical verification**: residual `||C − P D P⁻¹||` compared with direct `matrix_power`
+- **Exact calculation**: integers, rationals (`1/2`) and decimals as `Rational` — no float-to-fraction guessing
+- **Algebra / Graph modes**: in Graph mode, `(Aⁿ)ᵢⱼ` counts **walks** of length `n` (vertices may repeat)
+- **Field ℝ or ℂ**: a 90° rotation is not diagonalizable over ℝ; it is over ℂ
+- **Jordan form** when geometric multiplicity is smaller than algebraic (the flow does not stop)
+- **Symmetric real matrices**: orthogonal `P` with **P⁻¹ = Pᵀ**
+- **Characteristic polynomial**, eigen-systems for `n ≤ 4`, optional `e^{tA}`
+- **Directed vs undirected graphs** (`A ≠ Aᵀ`) with Graphviz DOT
+- **PDF download** (ReportLab, no file dialogs)
 
 ### Requirements
-- Python 3.8+
-- NumPy (>=1.21.0)
-- ReportLab (>=3.6.0)
-- Tkinter (on Ubuntu/Debian: `sudo apt install python3-tk`)
+- Python 3.10+
+- sympy, streamlit, reportlab (`pip install -r requirements.txt`)
 
 ### Installation
 ```bash
@@ -28,6 +28,10 @@ pip install -r requirements.txt
 
 ### Usage
 ```bash
+streamlit run app.py
+```
+or:
+```bash
 python main.py
 ```
 or:
@@ -35,15 +39,15 @@ or:
 python -m matrix_diagonalization
 ```
 
-1. Set the matrix size (2×2 to 10×10) and the power `n` (0 to 50)
-2. Enter the matrix, or load an example from the list
-3. Optionally enable “Solo adyacencia (0 y 1)” for graph interpretation
-4. Click **Calcular Cⁿ** (or `Ctrl+Enter`)
-5. Export the step-by-step report to PDF if you want
+1. Choose **Algebra** or **Graph**, and field **ℝ** or **ℂ**
+2. Set the order (2×2 to 10×10) and the power `n` (negative if `A` is invertible)
+3. Fill the grid, paste a matrix, or load an example (K3, P3, symmetric, Jordan, rotation)
+4. Click **Calcular Aⁿ**
+5. Download the PDF report if you want a numerical approximation, tick **evalf**
 
 ### Tests
 ```bash
-python -m unittest tests.test_calculator -v
+python -m unittest tests.test_engine -v
 ```
 
 ### License
@@ -54,21 +58,21 @@ MIT License — academic and educational use welcome.
 ## Español
 
 ### Descripción
-Aplicación de escritorio en Python que calcula la n-ésima potencia de una matriz cuadrada por diagonalización (`Cⁿ = P Dⁿ P⁻¹`). Nació como proyecto final de Álgebra Lineal y ahora admite matrices reales generales, no solo adyacencia 0-1.
+Aplicación web (Streamlit) que calcula la n-ésima potencia de una matriz cuadrada con **aritmética exacta** (`sympy.Matrix`). Si `A` es diagonalizable usa `Aⁿ = P Dⁿ P⁻¹`; si no, la forma de Jordan. Nació como proyecto final de Álgebra Lineal para matrices de adyacencia y ahora admite matrices generales sobre ℝ o ℂ.
 
 ### Características
-- **Método de diagonalización**: `Cⁿ = P Dⁿ P⁻¹` si `C` es diagonalizable sobre ℝ
-- **Matrices generales**: enteras o reales, incluidas las ponderadas y simétricas
-- **Modo adyacencia opcional**: solo 0 y 1, e interpreta `Cⁿ` como caminos de longitud `n`
-- **Comprobación de diagonalizabilidad**: autovalores reales, multiplicidad algebraica vs geométrica, invertibilidad de `P`
-- **Interfaz**: ejemplos, modo oscuro, copiar resultados, exportar PDF
-- **Verificación numérica**: residual `||C − P D P⁻¹||` frente al producto directo
+- **Cálculo exacto**: enteros, racionales (`1/2`) y decimales como `Rational` — no inventa fracciones desde floats
+- **Modos Álgebra / Grafo**: en Grafo, `(Aⁿ)ᵢⱼ` cuenta **recorridos** de longitud `n` (pueden repetir vértices)
+- **Cuerpo ℝ o ℂ**: la rotación 90° no diagonaliza sobre ℝ; sí sobre ℂ
+- **Forma de Jordan** cuando geo &lt; alg (el flujo no se corta)
+- **Simétrica real**: `P` ortogonal y **P⁻¹ = Pᵀ**
+- **Polinomio característico**, sistemas si `n ≤ 4`, `e^{tA}` opcional
+- **Grafo dirigido vs no dirigido** (`A ≠ Aᵀ`) con DOT
+- **Descarga PDF** (ReportLab, sin diálogos de archivo)
 
 ### Requisitos
-- Python 3.8+
-- NumPy (>=1.21.0)
-- ReportLab (>=3.6.0)
-- Tkinter (en Ubuntu/Debian: `sudo apt install python3-tk`)
+- Python 3.10+
+- sympy, streamlit, reportlab (`pip install -r requirements.txt`)
 
 ### Instalación
 ```bash
@@ -79,6 +83,10 @@ pip install -r requirements.txt
 
 ### Uso
 ```bash
+streamlit run app.py
+```
+o:
+```bash
 python main.py
 ```
 o:
@@ -86,15 +94,15 @@ o:
 python -m matrix_diagonalization
 ```
 
-1. Elige el orden de la matriz (2×2 a 10×10) y la potencia `n` (0 a 50)
-2. Introduce la matriz o carga un ejemplo
-3. Marca “Solo adyacencia (0 y 1)” si quieres la lectura en teoría de grafos
-4. Pulsa **Calcular Cⁿ** (o `Ctrl+Enter`)
-5. Exporta el desarrollo a PDF si lo necesitas
+1. Elige **Álgebra** o **Grafo**, y el cuerpo **ℝ** o **ℂ**
+2. Orden (2×2 a 10×10) y potencia `n` (negativa si `A` es invertible)
+3. Rellena la grilla, pega texto o carga un ejemplo (K3, P3, simétrica, Jordan, rotación)
+4. Pulsa **Calcular Aⁿ**
+5. Descarga el PDF; marca **evalf** si quieres una aproximación numérica
 
 ### Pruebas
 ```bash
-python -m unittest tests.test_calculator -v
+python -m unittest tests.test_engine -v
 ```
 
 ### Licencia
