@@ -1,0 +1,6 @@
+[client]
+# Oculta Deploy/Publish, Rerun y Clear cache (sigue el menú de tema/impresión).
+toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false
